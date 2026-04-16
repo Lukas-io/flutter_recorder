@@ -36,15 +36,14 @@ class RecorderFfi extends RecorderImpl {
   /// The dynamic library in which the symbols for [FlutterRecorderBindings]
   /// can be found.
   static final ffi.DynamicLibrary _dylib = () {
-    if (Platform.isMacOS || Platform.isIOS) {
-      // Use DynamicLibrary.process() so FFI symbols resolve from the
-      // statically-linked binary. DynamicLibrary.open() fails when the
-      // host app uses use_frameworks! :linkage => :static (e.g. Firebase).
-      try {
-        return ffi.DynamicLibrary.open('$_libName.framework/$_libName');
-      } catch (_) {
-        return ffi.DynamicLibrary.process();
-      }
+    if (Platform.isIOS) {
+      // iOS with use_frameworks! :linkage => :static (required by Firebase)
+      // statically links native code into the main binary. dlopen() can't
+      // find the framework, so resolve symbols from the process directly.
+      return ffi.DynamicLibrary.process();
+    }
+    if (Platform.isMacOS) {
+      return ffi.DynamicLibrary.open('$_libName.framework/$_libName');
     }
     if (Platform.isAndroid || Platform.isLinux) {
       return ffi.DynamicLibrary.open('lib$_libName.so');
